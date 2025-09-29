@@ -6,6 +6,7 @@
 #include <concepts>
 #include <cstdint>
 #include <limits>
+#include <type_traits>
 
 namespace lalib {
 
@@ -59,7 +60,7 @@ constexpr U sqrt(U x) {
   U ans = zero;
   // ensure progress when l + 1 == r
   while (l < r) {
-    const U mid = l + ((r - l + one) >> one);
+    const U mid = l + ((r - l + one) >> 1);
     // avoid division by zero
     if (mid != zero && mid <= x / mid) {
       l = mid;
@@ -69,6 +70,51 @@ constexpr U sqrt(U x) {
   }
 
   return l;
+}
+
+template <class T>
+  requires std::floating_point<T>
+T exponentiate(T base, uint64_t exp) {
+  T ans = T{1};
+  if (exp == 0) {
+    return ans;
+  }
+
+  if (exp < 0) {
+    base = 1 / base;
+    exp = -exp;
+  }
+
+  while (exp > 0) {
+    if (exp & 1) {
+      ans *= base;
+    }
+    base *= base;
+    exp >>= 1;
+  }
+
+  return ans;
+}
+
+template <class V>
+  requires std::unsigned_integral<V>
+constexpr V exponentiate(V base, uint64_t exp) {
+  assert(exp > 0 && "exponent must be nonnegative for an integral base");
+
+  V ans = V{1};
+  if (exp == 0) {
+    return ans;
+  }
+
+  while (exp > 0) {
+    if (exp & 1) {
+      ans *= base;
+    }
+    base *= base;
+    exp >>= 1;
+  }
+
+  return ans;
 }
 
 } // namespace lalib
