@@ -22,7 +22,7 @@ constexpr T sqrt(T x) {
     return x;
   }
 
-  auto absT = [](T t) { return t < zero ? -t : t; };
+  auto absT = [](T v) constexpr { return (v < T{0}) ? -v : v; };
 
   // babylonian method: https://www.cs.utep.edu/vladik/2009/olg09-05a.pdf
   T est = (x + one) * half;
@@ -74,7 +74,7 @@ constexpr U sqrt(U x) {
 
 template <class T>
   requires std::floating_point<T>
-T exponentiate(T base, uint64_t exp) {
+constexpr T exponentiate(T base, uint64_t exp) {
   T ans = T{1};
   if (exp == 0) {
     return ans;
