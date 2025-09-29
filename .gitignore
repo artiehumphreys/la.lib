@@ -1,4 +1,23 @@
+*.cache
+*.index/
+*.clangd/
+
+**/CMakeFiles/
 build/
+build-*/
+cmake-build-*/
+*/CMakeFiles/
+*/CMakeCache.txt
+*/CTestTestfile.cmake
+*/cmake_install.cmake
+*/Makefile
+
+tests/CMakeFiles/
+tests/CMakeCache.txt
+tests/CTestTestfile.cmake
+tests/cmake_install.cmake
+tests/Makefile
+
 # Prerequisites
 *.d
 

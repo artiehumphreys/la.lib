@@ -2,11 +2,8 @@
 
 #include <bit>
 #include <cassert>
-#include <cmath>
 #include <concepts>
-#include <cstdint>
 #include <limits>
-#include <type_traits>
 
 namespace lalib {
 
@@ -72,9 +69,9 @@ constexpr U sqrt(U x) {
   return l;
 }
 
-template <class T>
-  requires std::floating_point<T>
-constexpr T exponentiate(T base, uint64_t exp) {
+template <class T, class E>
+  requires(std::floating_point<T> && std::integral<E>)
+constexpr T exponentiate(T base, E exp) {
   T ans = T{1};
   if (exp == 0) {
     return ans;

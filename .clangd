@@ -1,0 +1,6 @@
+CompileFlags:
+  Add:
+    - -isysroot
+    - /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk
+    - -I/opt/homebrew/opt/llvm/include/c++/v1
+    - -I/opt/homebrew/opt/llvm/lib/clang/21/include
