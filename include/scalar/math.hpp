@@ -96,15 +96,10 @@ T exponentiate(T base, uint64_t exp) {
   return ans;
 }
 
-template <class V>
-  requires std::unsigned_integral<V>
-constexpr V exponentiate(V base, uint64_t exp) {
-  assert(exp > 0 && "exponent must be nonnegative for an integral base");
-
+template <class V, class E>
+  requires(std::integral<V> && std::unsigned_integral<E>)
+constexpr V exponentiate(V base, E exp) {
   V ans = V{1};
-  if (exp == 0) {
-    return ans;
-  }
 
   while (exp > 0) {
     if (exp & 1) {
