@@ -1,6 +1,6 @@
 *.cache
-*.index/
-*.clangd/
+*.index
+*.clangd
 
 **/CMakeFiles/
 build/
