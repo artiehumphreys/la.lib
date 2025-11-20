@@ -5,6 +5,7 @@
 #include <cassert>
 #include <mdspan>
 #include <span>
+#include <type_traits>
 
 namespace lalib {
 
@@ -67,13 +68,12 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return arr[r * M + c];
   }
 
-  template <class U, std::size_t P, std::size_t Q>
+  template <class U, std::size_t P, std::size_t Q,
+            class R = std::common_type<T, U>>
   constexpr auto operator*(Matrix<U, P, Q> other) const noexcept {
     static_assert(M == P, "matrix dimensions must match");
     static constexpr std::size_t TILE_SIZE =
         64 / std::max(sizeof(T), sizeof(U));
-
-    using R = decltype(std::declval<T>() * std::declval<U>());
 
     Matrix<R, N, Q> ans{};
 
@@ -90,7 +90,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
             for (int j0 = j; j0 < j_end; ++j0) {
               R sum = ans(i0, j0);
               for (int k0 = k; k0 < k_end; ++k0) {
-                sum += (*this)(i0, k0) * other(k0, j0);
+                sum += static_cast<R>((*this)(i0, k0)) *
+                       static_cast<R>(other(k0, j0));
               }
               ans(i0, j0) = sum;
             }
