@@ -72,8 +72,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
             class R = std::common_type<T, U>>
   constexpr auto operator*(Matrix<U, P, Q> other) const noexcept {
     static_assert(M == P, "matrix dimensions must match");
-    static constexpr std::size_t TILE_SIZE =
-        64 / std::max(sizeof(T), sizeof(U));
+    static constexpr std::size_t TILE_SIZE = 64 / sizeof(R);
 
     Matrix<R, N, Q> ans{};
 
