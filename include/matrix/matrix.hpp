@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <mdspan>
 #include <span>
 #include <type_traits>
@@ -69,26 +70,42 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   }
 
   template <class U, std::size_t P, std::size_t Q,
-            class R = std::common_type<T, U>>
-  constexpr auto operator*(Matrix<U, P, Q> other) const noexcept {
+            class R = std::common_type_t<T, U>>
+  constexpr auto operator+(const Matrix<U, P, Q> &other) const noexcept {
+    static_assert(N == P && M == Q, "matrix dimensions must match");
+
+    Matrix<R, N, M> ans{};
+    for (std::size_t i = 0; i < N; ++i) {
+      for (std::size_t j = 0; j < M; ++j) {
+        ans(i, j) = static_cast<R>((*this)(i, j) + other(i, j));
+      }
+    }
+
+    return ans;
+  }
+
+  template <class U, std::size_t P, std::size_t Q,
+            class R = std::common_type_t<T, U>>
+  constexpr auto operator*(const Matrix<U, P, Q> &other) const noexcept {
     static_assert(M == P, "matrix dimensions must match");
-    static constexpr std::size_t TILE_SIZE = 64 / sizeof(R);
+    static constexpr std::size_t TILE_SIZE =
+        std::max<std::size_t>(1, 64 / sizeof(R));
 
     Matrix<R, N, Q> ans{};
 
-    for (int i = 0; i < N; i += TILE_SIZE) {
-      for (int j = 0; j < Q; j += TILE_SIZE) {
-        for (int k = 0; k < P; k += TILE_SIZE) {
+    for (std::size_t i = 0; i < N; i += TILE_SIZE) {
+      for (std::size_t j = 0; j < Q; j += TILE_SIZE) {
+        for (std::size_t k = 0; k < P; k += TILE_SIZE) {
 
           // min is constexpr
           const std::size_t i_end = std::min(i + TILE_SIZE, N);
           const std::size_t j_end = std::min(j + TILE_SIZE, Q);
           const std::size_t k_end = std::min(k + TILE_SIZE, P);
 
-          for (int i0 = i; i0 < i_end; ++i0) {
-            for (int j0 = j; j0 < j_end; ++j0) {
-              R sum = ans(i0, j0);
-              for (int k0 = k; k0 < k_end; ++k0) {
+          for (std::size_t i0 = i; i0 < i_end; ++i0) {
+            for (std::size_t j0 = j; j0 < j_end; ++j0) {
+              R sum{};
+              for (std::size_t k0 = k; k0 < k_end; ++k0) {
                 sum += static_cast<R>((*this)(i0, k0)) *
                        static_cast<R>(other(k0, j0));
               }
