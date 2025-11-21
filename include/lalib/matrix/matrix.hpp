@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lalib/scalar/type_traits.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -84,6 +85,21 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
+  template <class U, std::size_t P, std::size_t Q>
+  constexpr auto operator-(const Matrix<U, P, Q> &other) const noexcept {
+    static_assert(N == P && M == Q, "matrix dimensions must match");
+
+    using R = lalib::signed_result_t<T, U>;
+
+    Matrix<R, N, M> neg{};
+    for (std::size_t i = 0; i < N; ++i) {
+      for (std::size_t j = 0; j < M; ++j) {
+        neg(i, j) = -static_cast<R>(other(i, j));
+      }
+    }
+    return (*this) + neg;
+  }
+
   template <class U, std::size_t P, std::size_t Q,
             class R = std::common_type_t<T, U>>
   constexpr auto operator*(const Matrix<U, P, Q> &other) const noexcept {
@@ -106,6 +122,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
             for (std::size_t j0 = j; j0 < j_end; ++j0) {
               R sum{};
               for (std::size_t k0 = k; k0 < k_end; ++k0) {
+                // TODO: dereferencing for this many ops can accumulate overhead
                 sum += static_cast<R>((*this)(i0, k0)) *
                        static_cast<R>(other(k0, j0));
               }

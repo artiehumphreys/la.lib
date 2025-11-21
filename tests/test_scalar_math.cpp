@@ -1,6 +1,4 @@
-#include "scalar/math.hpp"
-#include <cstdint>
-#include <iostream>
+#include "lalib/scalar/math.hpp"
 
 int main() {
   static_assert(lalib::sqrt(4.0) == 2.0);
