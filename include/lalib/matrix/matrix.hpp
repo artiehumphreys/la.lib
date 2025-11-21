@@ -50,6 +50,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
       }
     }
   }
+
   constexpr const T &operator[](std::size_t i) const noexcept {
     assert(i >= 0 && i < N * M);
     return arr[i];
@@ -89,6 +90,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   constexpr auto operator-(const Matrix<U, P, Q> &other) const noexcept {
     static_assert(N == P && M == Q, "matrix dimensions must match");
 
+    // force signed result in case of unsigned matrix types
     using R = lalib::signed_result_t<T, U>;
 
     Matrix<R, N, M> neg{};
@@ -134,5 +136,31 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     }
     return ans;
   }
+
+  constexpr auto transpose_inplace() noexcept
+    requires(N == M)
+  {
+    // in-place transpose for square matrices
+    // fluent interface support (returning the matrix)
+    for (std::size_t i = 0; i < N; ++i) {
+      for (std::size_t j = 0; j < M; ++j) {
+        std::swap((*this)(j, i), (*this)(i, j));
+      }
+    }
+    return *this;
+  }
+
+  constexpr auto transpose() const noexcept {
+    Matrix<T, M, N> ans{};
+
+    for (std::size_t i = 0; i < N; ++i) {
+      for (std::size_t j = i + 1; j < M; ++j) {
+        ans(j, i) = (*this)(i, j);
+      }
+    }
+    return ans;
+  }
+
+  constexpr auto operator~() const noexcept { return transpose(); }
 };
 } // namespace lalib
