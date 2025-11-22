@@ -82,8 +82,20 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
         ans(i, j) = static_cast<R>((*this)(i, j) + other(i, j));
       }
     }
-
     return ans;
+  }
+
+  template <class U, std::size_t P, std::size_t Q>
+  constexpr Matrix &operator+=(const Matrix<U, P, Q> &other) noexcept {
+    // in-place operations don't return a copy of the modified object (hence
+    // Matrix& vs. auto)
+    static_assert(N == P && M == Q, "matrix dimensions must be the same");
+    for (std::size_t i = 0; i < N; ++i) {
+      for (std::size_t j = 0; j < M; ++j) {
+        (*this)(i, j) += static_cast<T>(other(i, j));
+      }
+    }
+    return *this;
   }
 
   template <class U, std::size_t P, std::size_t Q>
@@ -100,6 +112,19 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
       }
     }
     return (*this) + neg;
+  }
+
+  template <class U, std::size_t P, std::size_t Q>
+  constexpr Matrix &operator-=(const Matrix<U, P, Q> &other) noexcept {
+    // do not modify matrix, even if operation leads to underflow
+    static_assert(N == P && M == Q, "matrix dimensions must match");
+
+    for (std::size_t i = 0; i < N; ++i) {
+      for (std::size_t j = 0; j < M; ++j) {
+        (*this)(i, j) -= static_cast<T>(other(i, j));
+      }
+    }
+    return *this;
   }
 
   template <class U, std::size_t P, std::size_t Q,
@@ -150,7 +175,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return *this;
   }
 
-  constexpr auto transpose() const noexcept {
+  constexpr Matrix &transpose() const noexcept {
     Matrix<T, M, N> ans{};
 
     for (std::size_t i = 0; i < N; ++i) {
@@ -162,5 +187,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   }
 
   constexpr auto operator~() const noexcept { return transpose(); }
+
+  // TODO: matrix-vector mutliplication
 };
 } // namespace lalib
