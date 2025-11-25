@@ -5,6 +5,7 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <initializer_list>
 #include <mdspan>
 #include <span>
 #include <type_traits>
@@ -31,6 +32,13 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     std::size_t i = 0;
     for (const U &val : s) {
       arr[i++] = static_cast<T>(val);
+    }
+  }
+
+  template <class U> constexpr Matrix(std::initializer_list<U> init) {
+    std::size_t i = 0;
+    for (const U &v : init) {
+      arr[i++] = static_cast<T>(v);
     }
   }
 
@@ -77,10 +85,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     static_assert(N == P && M == Q, "matrix dimensions must match");
 
     Matrix<R, N, M> ans{};
-    for (std::size_t i = 0; i < N; ++i) {
-      for (std::size_t j = 0; j < M; ++j) {
-        ans(i, j) = static_cast<R>((*this)(i, j) + other(i, j));
-      }
+    for (std::size_t i = 0; i < N * M; ++i) {
+      ans[i] = static_cast<R>(arr[i]) + static_cast<R>(other.arr[i]);
     }
     return ans;
   }
@@ -90,10 +96,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     // in-place operations don't return a copy of the modified object (hence
     // Matrix& vs. auto)
     static_assert(N == P && M == Q, "matrix dimensions must be the same");
-    for (std::size_t i = 0; i < N; ++i) {
-      for (std::size_t j = 0; j < M; ++j) {
-        (*this)(i, j) += static_cast<T>(other(i, j));
-      }
+    for (std::size_t i = 0; i < N * M; ++i) {
+      arr[i] += static_cast<T>(other.arr[i]);
     }
     return *this;
   }
@@ -106,10 +110,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     using R = lalib::signed_result_t<T, U>;
 
     Matrix<R, N, M> neg{};
-    for (std::size_t i = 0; i < N; ++i) {
-      for (std::size_t j = 0; j < M; ++j) {
-        neg(i, j) = -static_cast<R>(other(i, j));
-      }
+    for (std::size_t i = 0; i < N * M; ++i) {
+      neg.arr[i] = -static_cast<R>(other.arr[i]);
     }
     return (*this) + neg;
   }
@@ -119,10 +121,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     // do not modify matrix, even if operation leads to underflow
     static_assert(N == P && M == Q, "matrix dimensions must match");
 
-    for (std::size_t i = 0; i < N; ++i) {
-      for (std::size_t j = 0; j < M; ++j) {
-        (*this)(i, j) -= static_cast<T>(other(i, j));
-      }
+    for (std::size_t i = 0; i < N * M; ++i) {
+      arr[i] -= static_cast<T>(other.arr[i]);
     }
     return *this;
   }
@@ -161,31 +161,50 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
-  constexpr auto transpose_inplace() noexcept
+  constexpr Matrix &transpose_inplace() noexcept
     requires(N == M)
   {
     // in-place transpose for square matrices
     // fluent interface support (returning the matrix)
     for (std::size_t i = 0; i < N; ++i) {
-      for (std::size_t j = 0; j < M; ++j) {
+      for (std::size_t j = i + 1; j < M; ++j) {
         std::swap((*this)(j, i), (*this)(i, j));
       }
     }
     return *this;
   }
 
-  constexpr Matrix &transpose() const noexcept {
+  constexpr Matrix<T, M, N> transpose() const noexcept {
     Matrix<T, M, N> ans{};
 
     for (std::size_t i = 0; i < N; ++i) {
-      for (std::size_t j = i + 1; j < M; ++j) {
+      for (std::size_t j = 0; j < M; ++j) {
         ans(j, i) = (*this)(i, j);
       }
     }
     return ans;
   }
 
-  constexpr auto operator~() const noexcept { return transpose(); }
+  constexpr Matrix<T, M, N> operator~() const noexcept { return transpose(); }
+
+  template <class U, std::size_t P, std::size_t Q>
+  constexpr bool operator==(const Matrix<U, P, Q> &other) const noexcept {
+    if constexpr (P != N || Q != M) {
+      return false;
+    }
+
+    for (std::size_t i = 0; i < N * M; ++i) {
+      if (arr[i] != other.arr[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <class U, std::size_t P, std::size_t Q>
+  constexpr bool operator!=(const Matrix<U, P, Q> &other) const noexcept {
+    return !(*this == other);
+  }
 
   // TODO: matrix-vector mutliplication
 };
