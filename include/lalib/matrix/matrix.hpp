@@ -136,24 +136,23 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
 
     Matrix<R, N, Q> ans{};
 
-    for (std::size_t i = 0; i < N; i += TILE_SIZE) {
-      for (std::size_t j = 0; j < Q; j += TILE_SIZE) {
-        for (std::size_t k = 0; k < P; k += TILE_SIZE) {
+    for (std::size_t ii = 0; ii < N; ii += TILE_SIZE) {
+      for (std::size_t kk = 0; kk < P; kk += TILE_SIZE) {
+        for (std::size_t jj = 0; jj < Q; jj += TILE_SIZE) {
 
           // min is constexpr
-          const std::size_t i_end = std::min(i + TILE_SIZE, N);
-          const std::size_t j_end = std::min(j + TILE_SIZE, Q);
-          const std::size_t k_end = std::min(k + TILE_SIZE, P);
+          const std::size_t i_end = std::min(ii + TILE_SIZE, N);
+          const std::size_t j_end = std::min(jj + TILE_SIZE, Q);
+          const std::size_t k_end = std::min(kk + TILE_SIZE, P);
 
-          for (std::size_t i0 = i; i0 < i_end; ++i0) {
-            for (std::size_t j0 = j; j0 < j_end; ++j0) {
-              R sum{};
-              for (std::size_t k0 = k; k0 < k_end; ++k0) {
-                // TODO: dereferencing for this many ops can accumulate overhead
-                sum += static_cast<R>((*this)(i0, k0)) *
-                       static_cast<R>(other(k0, j0));
+          for (std::size_t i = ii; i < i_end; ++i) {
+            // i -> k -> j to ensure both matrices are accessed row-major
+            for (std::size_t k = kk; k < k_end; ++k) {
+              const R curr = static_cast<R>((*this)(i, k));
+
+              for (std::size_t j = jj; j < j_end; ++j) {
+                ans(i, j) += curr * static_cast<R>(other(k, j));
               }
-              ans(i0, j0) = sum;
             }
           }
         }
