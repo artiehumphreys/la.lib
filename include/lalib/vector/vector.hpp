@@ -1,6 +1,8 @@
+#include "lalib/scalar/type_traits.hpp"
 #include <array>
 #include <cassert>
 #include <span>
+#include <type_traits>
 
 namespace lalib {
 
@@ -32,6 +34,16 @@ template <class T, std::size_t N> struct Vector {
   constexpr void fill(T &v) {
     for (T &a : arr) {
       a = v;
+    }
+  }
+
+  template <class U, std::size_t M, class R = std::common_type_t<T, U>>
+  constexpr Vector &operator+(Vector<U, M> &other) const noexcept {
+    static_assert(N == M, "vector dimensions must match");
+
+    Vector<R, N> ans{};
+    for (std::size_t i = 0; i < N; ++i) {
+      ans[i] = static_cast<R>(arr[i]) + static_cast<R>(other.arr[i]);
     }
   }
 };
