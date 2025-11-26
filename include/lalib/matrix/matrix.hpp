@@ -5,6 +5,7 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <cstdlib>
 #include <initializer_list>
 #include <mdspan>
 #include <span>
@@ -186,6 +187,51 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   }
 
   constexpr Matrix<T, M, N> operator~() const noexcept { return transpose(); }
+
+  constexpr auto det() const noexcept
+    requires(N == M)
+  {
+    using R = lalib::floating_point_result_t<T, T>;
+
+    Matrix<R, N, N> tmp = *this;
+    R ans = R{1};
+
+    for (std::size_t i = 0; i < N; ++i) {
+      std::size_t pivot = i;
+      for (std::size_t j = i + 1; j < N; ++j) {
+        if (std::abs(tmp(j, i)) > std::abs(tmp(pivot, i))) {
+          pivot = j;
+        }
+      }
+
+      if (std::abs(tmp(pivot, i)) == R{0}) {
+        return R{0};
+      }
+
+      if (i != pivot) {
+        for (std::size_t c = 0; c < N; ++c) {
+          std::swap(tmp(i, c), tmp(pivot, c));
+        }
+        ans = -ans;
+      }
+
+      ans *= tmp(i, i);
+
+      for (std::size_t c = i + 1; c < N; ++c) {
+        tmp(i, c) /= tmp(i, i);
+      }
+
+      for (std::size_t r = 0; r < N; ++r) {
+        if (r != i && std::abs(tmp(r, i)) > R{0}) {
+          const R factor = tmp(r, i);
+          for (std::size_t c = i + 1; c < N; ++c) {
+            tmp(r, c) -= tmp(i, c) * factor;
+          }
+        }
+      }
+    }
+    return ans;
+  }
 
   template <class U, std::size_t P, std::size_t Q>
   constexpr bool operator==(const Matrix<U, P, Q> &other) const noexcept {
