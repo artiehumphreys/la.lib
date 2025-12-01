@@ -60,6 +60,17 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     }
   }
 
+  static constexpr Matrix<T, N, N> identity() noexcept
+    requires(N == M)
+  {
+    Matrix<T, N, N> ans{};
+    for (std::size_t i = 0; i < N; ++i) {
+      ans(i, i) = T{1};
+    }
+
+    return ans;
+  }
+
   constexpr const T &operator[](std::size_t i) const noexcept {
     assert(i >= 0 && i < N * M);
     return arr[i];
@@ -161,7 +172,6 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     }
     return ans;
   }
-
   constexpr Matrix &transpose_inplace() noexcept
     requires(N == M)
   {
