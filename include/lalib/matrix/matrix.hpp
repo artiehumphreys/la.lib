@@ -21,6 +21,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   constexpr Matrix() = default;
 
   template <class Iter> constexpr Matrix(Iter begin, Iter end) {
+    // primarily runtime construction
     std::size_t i = 0;
     while (begin != end) {
       T value = static_cast<T>(*begin);
@@ -37,6 +38,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   }
 
   template <class U> constexpr Matrix(std::initializer_list<U> init) {
+    // curly brace initialization
     std::size_t i = 0;
     for (const U &v : init) {
       arr[i++] = static_cast<T>(v);
@@ -172,6 +174,29 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     }
     return ans;
   }
+
+  template <class Scalar> constexpr Matrix operator*(Scalar s) const noexcept {
+    using R = decltype(std::declval<T>() * std::declval<Scalar>());
+    // compile-time computation of promoted type
+
+    Matrix<R, N, M> ans{};
+    for (std::size_t i = 0; i < N * M; ++i) {
+      ans[i] = static_cast<R>(arr[i] * s);
+    }
+    return ans;
+  }
+
+  template <class Scalar>
+    requires(std::is_convertible_v<
+             decltype(std::declval<T>() * std::declval<Scalar>()), T>)
+  constexpr Matrix &operator*=(Scalar s) noexcept {
+    // non-narrowing in-place scalar multiplication
+    for (std::size_t i = 0; i < N * M; ++i) {
+      arr[i] *= s;
+    }
+    return *this;
+  }
+
   constexpr Matrix &transpose_inplace() noexcept
     requires(N == M)
   {

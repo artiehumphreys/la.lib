@@ -1,8 +1,8 @@
-
-
 #include <type_traits>
 
 namespace lalib {
+
+struct scalar {};
 
 template <class A, class B> struct signed_result {
   using common = std::common_type_t<A, B>;
