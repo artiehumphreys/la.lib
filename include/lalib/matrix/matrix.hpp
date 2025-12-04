@@ -268,6 +268,42 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
+  constexpr Matrix &reverse_row(std::size_t r) noexcept {
+    assert(r < N);
+    for (std::size_t i = 0; i < (M >> 1); ++i) {
+      std::swap((*this)(r, i), (*this)(r, M - i - 1));
+    }
+    return *this;
+  }
+
+  constexpr Matrix &reverse_col(std::size_t c) noexcept {
+    assert(c < M);
+    for (std::size_t i = 0; i < (N >> 1); ++i) {
+      std::swap((*this)(i, c), (*this)(N - i - 1, c));
+    }
+    return *this;
+  }
+
+  template <std::size_t deg>
+    requires((deg == 90 || deg == 180 || deg == 270) && N == M)
+  constexpr Matrix &rotate_cw_inplace() {
+    if constexpr (deg == 90) {
+      this->transpose_inplace();
+      for (std::size_t r = 0; r < N; ++r) {
+        this->reverse_row(r);
+      }
+    } else if constexpr (deg == 180) {
+      for (std::size_t i = 0; i < N * M; ++i) {
+        std::swap(arr[i], arr[N * M - i - 1]);
+      }
+    } else {
+      this->transpose_inplace();
+      for (std::size_t c = 0; c < M; ++c) {
+        this->reverse_col(c);
+      }
+    }
+  }
+
   template <class U, std::size_t P, std::size_t Q>
   constexpr bool operator==(const Matrix<U, P, Q> &other) const noexcept {
     if constexpr (P != N || Q != M) {

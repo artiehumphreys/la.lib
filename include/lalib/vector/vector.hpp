@@ -46,5 +46,18 @@ template <class T, std::size_t N> struct Vector {
       ans[i] = static_cast<R>(arr[i]) + static_cast<R>(other.arr[i]);
     }
   }
+
+  template <class U, std::size_t M>
+  constexpr Vector &operator-(Vector<U, M> &other) const noexcept {
+    static_assert(N == M, "vector dimensions must match");
+
+    using R = lalib::signed_result_t<T, U>;
+
+    Vector<R, N> neg{};
+    for (std::size_t i = 0; i < N; ++i) {
+      neg[i] = -static_cast<R>(other.arr[i]);
+    }
+    return *this + neg;
+  }
 };
 }; // namespace lalib
