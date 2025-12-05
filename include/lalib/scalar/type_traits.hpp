@@ -19,6 +19,10 @@ template <class A, class B> struct floating_point_result {
 };
 
 template <class A, class B>
+concept safe_scalar_multiply =
+    std::is_convertible_v<decltype(std::declval<A>() * std::declval<B>()), A>;
+
+template <class A, class B>
 using signed_result_t = typename signed_result<A, B>::type;
 
 template <class A, class B>

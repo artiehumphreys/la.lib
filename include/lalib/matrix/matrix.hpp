@@ -186,9 +186,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
-  template <class Scalar>
-    requires(std::is_convertible_v<
-             decltype(std::declval<T>() * std::declval<Scalar>()), T>)
+  template <lalib::safe_scalar_multiply<T> Scalar>
   constexpr Matrix &operator*=(Scalar s) noexcept {
     // non-narrowing in-place scalar multiplication
     for (std::size_t i = 0; i < N * M; ++i) {
