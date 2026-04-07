@@ -121,7 +121,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     static_assert(N == P && M == Q, "matrix dimensions must match");
 
     // force signed result in case of unsigned matrix types
-    using R = lalib::signed_result_t<T, U>;
+    using R = signed_result_t<T, U>;
 
     Matrix<R, N, M> neg{};
     for (std::size_t i = 0; i < N * M; ++i) {
@@ -175,7 +175,9 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
-  template <class Scalar> constexpr Matrix operator*(Scalar s) const noexcept {
+  template <class Scalar>
+    requires std::is_arithmetic_v<Scalar>
+  constexpr Matrix operator*(Scalar s) const noexcept {
     using R = decltype(std::declval<T>() * std::declval<Scalar>());
     // compile-time computation of promoted type
 
@@ -186,7 +188,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
-  template <lalib::safe_scalar_multiply<T> Scalar>
+  template <safe_scalar_multiply<T> Scalar>
   constexpr Matrix &operator*=(Scalar s) noexcept {
     // non-narrowing in-place scalar multiplication
     for (std::size_t i = 0; i < N * M; ++i) {
@@ -224,7 +226,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   constexpr auto det() const noexcept
     requires(N == M)
   {
-    using R = lalib::floating_point_result_t<T, T>;
+    using R = floating_point_result_t<T, T>;
 
     Matrix<R, N, N> tmp = *this;
     R ans = R{1};
