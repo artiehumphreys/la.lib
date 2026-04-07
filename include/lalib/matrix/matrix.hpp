@@ -23,7 +23,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   template <class Iter> constexpr Matrix(Iter begin, Iter end) {
     // primarily runtime construction
     std::size_t i = 0;
-    while (begin != end) {
+    // TODO: handle more than N * M element explicitly
+    while (begin != end && i < N * M) {
       T value = static_cast<T>(*begin);
       arr[i++] = value;
       ++begin;
@@ -39,6 +40,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
 
   template <class U> constexpr Matrix(std::initializer_list<U> init) {
     // curly brace initialization
+    static_assert(init.size() < N * M);
     std::size_t i = 0;
     for (const U &v : init) {
       arr[i++] = static_cast<T>(v);
@@ -177,7 +179,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
 
   template <class Scalar>
     requires std::is_arithmetic_v<Scalar>
-  constexpr Matrix operator*(Scalar s) const noexcept {
+  constexpr auto operator*(Scalar s) const noexcept {
     using R = decltype(std::declval<T>() * std::declval<Scalar>());
     // compile-time computation of promoted type
 
@@ -293,7 +295,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
         this->reverse_row(r);
       }
     } else if constexpr (deg == 180) {
-      for (std::size_t i = 0; i < N * M; ++i) {
+      for (std::size_t i = 0; i < N * M / 2; ++i) {
         std::swap(arr[i], arr[N * M - i - 1]);
       }
     } else {
