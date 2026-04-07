@@ -10,6 +10,7 @@
 #include <mdspan>
 #include <span>
 #include <type_traits>
+#include <utility>
 
 namespace lalib {
 
@@ -40,7 +41,9 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
 
   template <class U> constexpr Matrix(std::initializer_list<U> init) {
     // curly brace initialization
-    static_assert(init.size() < N * M);
+    assert(init.size() <=
+           N * M); // function params are not constexpr, so size() cannot be
+                   // verified with static_assert
     std::size_t i = 0;
     for (const U &v : init) {
       arr[i++] = static_cast<T>(v);
@@ -64,7 +67,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     }
   }
 
-  static constexpr Matrix<T, N, N> identity() noexcept
+  static constexpr Matrix<T, N, N> identity() noexcept(nothrow_element_v<T>)
     requires(N == M)
   {
     Matrix<T, N, N> ans{};
@@ -97,7 +100,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
 
   template <class U, std::size_t P, std::size_t Q,
             class R = std::common_type_t<T, U>>
-  constexpr auto operator+(const Matrix<U, P, Q> &other) const noexcept {
+  constexpr auto operator+(const Matrix<U, P, Q> &other) const
+      noexcept(nothrow_element_v<R>) {
     static_assert(N == P && M == Q, "matrix dimensions must match");
 
     Matrix<R, N, M> ans{};
@@ -108,9 +112,10 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   }
 
   template <class U, std::size_t P, std::size_t Q>
-  constexpr Matrix &operator+=(const Matrix<U, P, Q> &other) noexcept {
-    // in-place operations don't return a copy of the modified object (hence
-    // Matrix& vs. auto)
+  constexpr Matrix &
+  operator+=(const Matrix<U, P, Q> &other) noexcept(nothrow_element_v<T>) {
+    // in-place operations return a reference to the existing object
+    // enables chaining while modifying in-place (hence Matrix &)
     static_assert(N == P && M == Q, "matrix dimensions must be the same");
     for (std::size_t i = 0; i < N * M; ++i) {
       arr[i] += static_cast<T>(other.arr[i]);
@@ -118,12 +123,12 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return *this;
   }
 
-  template <class U, std::size_t P, std::size_t Q>
-  constexpr auto operator-(const Matrix<U, P, Q> &other) const noexcept {
+  // force signed result in case of unsigned matrix types
+  template <class U, std::size_t P, std::size_t Q,
+            class R = signed_result_t<T, U>>
+  constexpr auto operator-(const Matrix<U, P, Q> &other) const
+      noexcept(nothrow_element_v<R>) {
     static_assert(N == P && M == Q, "matrix dimensions must match");
-
-    // force signed result in case of unsigned matrix types
-    using R = signed_result_t<T, U>;
 
     Matrix<R, N, M> neg{};
     for (std::size_t i = 0; i < N * M; ++i) {
@@ -133,7 +138,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   }
 
   template <class U, std::size_t P, std::size_t Q>
-  constexpr Matrix &operator-=(const Matrix<U, P, Q> &other) noexcept {
+  constexpr Matrix &
+  operator-=(const Matrix<U, P, Q> &other) noexcept(nothrow_element_v<T>) {
     // do not modify matrix, even if operation leads to underflow
     static_assert(N == P && M == Q, "matrix dimensions must match");
 
@@ -145,7 +151,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
 
   template <class U, std::size_t P, std::size_t Q,
             class R = std::common_type_t<T, U>>
-  constexpr auto operator*(const Matrix<U, P, Q> &other) const noexcept {
+  constexpr auto operator*(const Matrix<U, P, Q> &other) const
+      noexcept(nothrow_element_v<R>) {
     static_assert(M == P, "matrix dimensions must match");
     static constexpr std::size_t TILE_SIZE =
         std::max<std::size_t>(1, 64 / sizeof(R));
@@ -177,11 +184,11 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
-  template <class Scalar>
+  // compile-time computation of promoted type
+  template <class Scalar,
+            class R = decltype(std::declval<T>() * std::declval<Scalar>())>
     requires std::is_arithmetic_v<Scalar>
-  constexpr auto operator*(Scalar s) const noexcept {
-    using R = decltype(std::declval<T>() * std::declval<Scalar>());
-    // compile-time computation of promoted type
+  constexpr auto operator*(Scalar s) const noexcept(nothrow_element_v<R>) {
 
     Matrix<R, N, M> ans{};
     for (std::size_t i = 0; i < N * M; ++i) {
@@ -191,7 +198,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
   }
 
   template <safe_scalar_multiply<T> Scalar>
-  constexpr Matrix &operator*=(Scalar s) noexcept {
+  constexpr Matrix &operator*=(Scalar s) noexcept(nothrow_element_v<T>) {
     // non-narrowing in-place scalar multiplication
     for (std::size_t i = 0; i < N * M; ++i) {
       arr[i] *= s;
@@ -212,7 +219,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return *this;
   }
 
-  constexpr Matrix<T, M, N> transpose() const noexcept {
+  constexpr Matrix<T, M, N> transpose() const noexcept(nothrow_element_v<T>) {
     Matrix<T, M, N> ans{};
 
     for (std::size_t i = 0; i < N; ++i) {
@@ -223,7 +230,9 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
-  constexpr Matrix<T, M, N> operator~() const noexcept { return transpose(); }
+  constexpr Matrix<T, M, N> operator~() const noexcept(nothrow_element_v<T>) {
+    return transpose();
+  }
 
   constexpr auto det() const noexcept
     requires(N == M)

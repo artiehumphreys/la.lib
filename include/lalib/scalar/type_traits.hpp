@@ -37,4 +37,11 @@ using signed_result_t = typename signed_result<A, B>::type;
 template <class A, class B>
 using floating_point_result_t = typename floating_point_result<A, B>::type;
 
+// ensuring that any assignment operations and default initialization won't
+// throw -> helpful for arithmetic ops
+template <class T>
+inline constexpr bool nothrow_element_v =
+    std::is_nothrow_default_constructible_v<T> &&
+    std::is_nothrow_copy_assignable_v<T>;
+
 } // namespace lalib

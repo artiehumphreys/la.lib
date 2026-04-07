@@ -7,7 +7,7 @@
 namespace lalib {
 
 template <class T, std::size_t N> struct Vector {
-  static_assert(N > 0 && "vector size must be positive.");
+  static_assert(N > 0, "vector size must be positive.");
 
   std::array<T, N> arr{};
 
@@ -26,29 +26,41 @@ template <class T, std::size_t N> struct Vector {
     }
   }
 
-  constexpr T &operator[](std::size_t i) {
+  constexpr T &operator[](std::size_t i) noexcept {
     assert(i >= 0 && i < N && "index out of bounds.");
     return arr[i];
   }
 
-  constexpr void fill(T &v) {
+  constexpr const T &operator[](std::size_t i) const noexcept {
+    assert(i >= 0 && i < N && "index out of bounds.");
+    return arr[i];
+  }
+
+  constexpr void
+  fill(const T &v) noexcept(std::is_nothrow_copy_assignable_v<T>) {
     for (T &a : arr) {
       a = v;
     }
   }
 
+  // conditional noexcept on whether or not the resulting type can be
+  // copy-assigned and default constructed w/o exceptions
   template <class U, std::size_t M, class R = std::common_type_t<T, U>>
-  constexpr Vector &operator+(Vector<U, M> &other) const noexcept {
+  constexpr auto operator+(const Vector<U, M> &other) const
+      noexcept(nothrow_element_v<R>) {
     static_assert(N == M, "vector dimensions must match");
 
     Vector<R, N> ans{};
     for (std::size_t i = 0; i < N; ++i) {
       ans[i] = static_cast<R>(arr[i]) + static_cast<R>(other.arr[i]);
     }
+
+    return ans;
   }
 
   template <class U, std::size_t M>
-  constexpr Vector &operator-(Vector<U, M> &other) const noexcept {
+  constexpr auto operator-(const Vector<U, M> &other) const
+      noexcept(nothrow_element_v<signed_result_t<T, U>>) {
     static_assert(N == M, "vector dimensions must match");
 
     using R = lalib::signed_result_t<T, U>;
@@ -60,4 +72,4 @@ template <class T, std::size_t N> struct Vector {
     return *this + neg;
   }
 };
-}; // namespace lalib
+} // namespace lalib
