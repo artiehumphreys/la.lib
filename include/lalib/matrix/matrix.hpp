@@ -206,7 +206,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return *this;
   }
 
-  constexpr Matrix &transpose_inplace() noexcept
+  constexpr Matrix &
+  transpose_inplace() noexcept(std::is_nothrow_swappable_v<T>)
     requires(N == M)
   {
     // in-place transpose for square matrices
@@ -234,11 +235,11 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return transpose();
   }
 
-  constexpr auto det() const noexcept
+  template <class R = floating_point_result_t<T, T>>
+  constexpr auto det() const
+      noexcept(nothrow_element_v<R> && std::is_nothrow_swappable_v<R>)
     requires(N == M)
   {
-    using R = floating_point_result_t<T, T>;
-
     Matrix<R, N, N> tmp = *this;
     R ans = R{1};
 
@@ -279,7 +280,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return ans;
   }
 
-  constexpr Matrix &reverse_row(std::size_t r) noexcept {
+  constexpr Matrix &
+  reverse_row(std::size_t r) noexcept(std::is_nothrow_swappable_v<T>) {
     assert(r < N);
     for (std::size_t i = 0; i < (M >> 1); ++i) {
       std::swap((*this)(r, i), (*this)(r, M - i - 1));
@@ -287,7 +289,8 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
     return *this;
   }
 
-  constexpr Matrix &reverse_col(std::size_t c) noexcept {
+  constexpr Matrix &
+  reverse_col(std::size_t c) noexcept(std::is_nothrow_swappable_v<T>) {
     assert(c < M);
     for (std::size_t i = 0; i < (N >> 1); ++i) {
       std::swap((*this)(i, c), (*this)(N - i - 1, c));
@@ -297,7 +300,7 @@ template <class T, std::size_t N, std::size_t M> struct Matrix {
 
   template <std::size_t deg>
     requires((deg == 90 || deg == 180 || deg == 270) && N == M)
-  constexpr Matrix &rotate_cw_inplace() {
+  constexpr Matrix &rotate_cw_inplace() noexcept(std::is_nothrow_swappable_v<T>) {
     if constexpr (deg == 90) {
       this->transpose_inplace();
       for (std::size_t r = 0; r < N; ++r) {
